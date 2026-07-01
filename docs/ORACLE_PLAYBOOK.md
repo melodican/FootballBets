@@ -60,6 +60,7 @@ All commands run from the repo root. Add `--json` for machine-readable output.
 | Daily watch list | `python -m stringtheory shortlist --date YYYY-MM-DD --json` |
 | Is a price value? | `python -m stringtheory value --strike 70 --price 1.8` |
 | Stake sizing | `python -m stringtheory stake --bankroll 500 --frontline 10` |
+| Vet an entry (stake+value+exit+correlation) | `python -m stringtheory position --bankroll 1000 --match "..." --selection "Germany -1.5" --market "Asian Handicap" --price 2.26 --strike 60 --open "...|Germany|Match Odds"` |
 | Green up / free bet | `python -m stringtheory hedge --stake 500 --back 1.43 --lay 1.20 --mode green` |
 | Full in-play read | `python -m stringtheory evaluate --country Sweden --minute 55 ... --json` |
 | League stance | `python -m stringtheory geo Japan` |
@@ -86,8 +87,10 @@ python -m pytest -q                # confirm green
    in-play stats (dangerous attacks, shots, possession) and the recent-form %s.
 2. Run `evaluate ... --json`. Relay the GO / CONSIDER / NO-GO and the failing
    pieces.
-3. On GO: size with `stake`, confirm value with `value`, and **ask for the
-   pre-set exit** before Glen enters.
+3. On GO: run `position` with Glen's open bets passed via `--open`. It sizes the
+   stake, checks value, flags any correlated stack, and **demands a pre-set
+   exit** before Glen enters. A 🔴 BLOCK (no value) means don't bet; a 🟡 CAUTION
+   (correlation/staking) means make Glen consciously confirm.
 4. After a goal moves the price: run `hedge` and tell him the green-up/free-bet
    lay instantly.
 

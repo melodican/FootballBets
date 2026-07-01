@@ -31,7 +31,7 @@ import json
 import sys
 from typing import Optional, Tuple
 
-from . import betfair, evaluate, geography, hedging, journal, numbers, shortlist, staking
+from . import betfair, evaluate, geography, hedging, journal, numbers, positions, shortlist, staking
 
 
 def _parse_pair(text: Optional[str]) -> Tuple[Optional[float], Optional[float]]:
@@ -139,6 +139,31 @@ def cmd_analyse(args) -> int:
     return 0
 
 
+def cmd_position(args) -> int:
+    open_positions = []
+    if args.open:
+        for spec in args.open:
+            # format: "Match|Selection|Market[|side]"
+            parts = spec.split("|")
+            open_positions.append(positions.Position(
+                match=parts[0], selection=parts[1] if len(parts) > 1 else "",
+                market=parts[2] if len(parts) > 2 else "",
+                side=parts[3] if len(parts) > 3 else "back",
+            ))
+    candidate = positions.Position(
+        match=args.match, selection=args.selection, market=args.market,
+        side=args.side, price=args.price,
+        exit_price=args.exit_price, exit_minute=args.exit_minute,
+    )
+    proposal = positions.propose_entry(
+        bankroll=args.bankroll, candidate=candidate, open_positions=open_positions,
+        frontline_pct=args.frontline / 100.0, strike_rate=args.strike,
+        commission=args.commission,
+    )
+    print(proposal.telegram)
+    return 0
+
+
 def cmd_shortlist(args) -> int:
     if args.date:
         from . import apifootball
@@ -236,6 +261,21 @@ def build_parser() -> argparse.ArgumentParser:
     an.add_argument("--path", required=True, help="Path to the ExchangeBets_Settled CSV")
     an.add_argument("--commission", type=float, default=betfair.DEFAULT_COMMISSION)
     an.set_defaults(func=cmd_analyse)
+
+    po = sub.add_parser("position", help="Vet an entry: stake, value, exit + correlation guardrail")
+    po.add_argument("--bankroll", type=float, required=True)
+    po.add_argument("--frontline", type=float, default=10.0)
+    po.add_argument("--match", required=True)
+    po.add_argument("--selection", required=True, help="e.g. 'Germany', 'Germany -1.5', 'Over 2.5'")
+    po.add_argument("--market", required=True, help="e.g. 'Match Odds', 'Asian Handicap', 'Over/Under 2.5 Goals'")
+    po.add_argument("--side", default="back", choices=["back", "lay"])
+    po.add_argument("--price", type=float)
+    po.add_argument("--strike", type=float, help="your strike-rate estimate (value check)")
+    po.add_argument("--commission", type=float, default=0.0)
+    po.add_argument("--exit-price", type=float, dest="exit_price")
+    po.add_argument("--exit-minute", type=int, dest="exit_minute")
+    po.add_argument("--open", action="append", help="Open position 'Match|Selection|Market[|side]' (repeatable)")
+    po.set_defaults(func=cmd_position)
 
     sl = sub.add_parser("shortlist", help="Daily 'Watch These Games' Top-vs-Whipping-Boys shortlist")
     sl.add_argument("--date", help="YYYY-MM-DD for a live API-Football fetch (needs API_FOOTBALL_KEY)")
