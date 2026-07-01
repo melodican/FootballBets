@@ -29,7 +29,7 @@ import argparse
 import sys
 from typing import Optional, Tuple
 
-from . import evaluate, geography, hedging, journal, numbers, staking
+from . import betfair, evaluate, geography, hedging, journal, numbers, staking
 
 
 def _parse_pair(text: Optional[str]) -> Tuple[Optional[float], Optional[float]]:
@@ -117,6 +117,11 @@ def cmd_report(args) -> int:
     return 0
 
 
+def cmd_analyse(args) -> int:
+    print(betfair.format_analysis(args.path, commission=args.commission))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="stringtheory", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -180,6 +185,11 @@ def build_parser() -> argparse.ArgumentParser:
     rp = sub.add_parser("report", help="Show your trading analytics")
     rp.add_argument("--path", default=journal.DEFAULT_PATH)
     rp.set_defaults(func=cmd_report)
+
+    an = sub.add_parser("analyse", help="Analyse a Betfair settled-bets CSV export")
+    an.add_argument("--path", required=True, help="Path to the ExchangeBets_Settled CSV")
+    an.add_argument("--commission", type=float, default=betfair.DEFAULT_COMMISSION)
+    an.set_defaults(func=cmd_analyse)
 
     return p
 

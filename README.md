@@ -20,6 +20,7 @@ into tools you can actually use while trading.
 | `stringtheory/geography.py` | **G** — every league in the book, with goals/unders bias. |
 | `stringtheory/evaluate.py` | The full **S.T.R.I.N.G checklist** → GO / CONSIDER / NO-GO. |
 | `stringtheory/journal.py` | Trade log + analytics ("log everything / find your patch"). |
+| `stringtheory/betfair.py` | Parse a Betfair settled-bets export → rebuild positions from legs → analyse traded-vs-let-ride. |
 | `stringtheory/cli.py` | Command line for all of the above. |
 | `tools/trade-calculator.html` | A single-file, offline browser calculator for live use. |
 | `docs/STRING_METHOD.md` | The method, distilled into a spec. |
@@ -48,7 +49,17 @@ python -m stringtheory evaluate --country Sweden --minute 55 --score 0-0 \
 python -m stringtheory log --match "France v Sweden" --country France \
     --market "Over 0.5 Goals" --price 2.05 --stake 500 --pnl 514.52 --strategy STRING
 python -m stringtheory report
+
+# Analyse a raw Betfair settled-bets export (rebuilds positions from legs)
+python -m stringtheory analyse --path data/betfair_export.csv
 ```
+
+**Drop your own `ExchangeBets_Settled.csv` into `data/`** and run `analyse`: it
+reconstructs positions from your back/lay legs, applies commission (reconciles
+to your statement to the penny) and shows traded-vs-let-ride, on/off-method and
+per-market performance. See [`docs/INSIGHTS.md`](docs/INSIGHTS.md) for the
+findings from your real export — the short version: **your edge is trading out
+(hedging), and the leak is un-exited directional bets.**
 
 For live trading, open `tools/trade-calculator.html` in a browser tab next to
 Betfair / Bet365 / Flashscore — it works offline and needs nothing installed.

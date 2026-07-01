@@ -1,5 +1,7 @@
-# Your live, personal trade log stays local — only the example is committed.
+# Your live, personal trade log + raw Betfair exports stay local.
 data/trades.csv
+data/betfair_export.csv
+data/*ExchangeBets*.csv
 
 # Python
 __pycache__/
