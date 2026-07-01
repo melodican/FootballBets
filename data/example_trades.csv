@@ -1,0 +1,11 @@
+date,match,country,competition,market,side,minute,price,stake,pnl,result,strategy,notes
+2026-06-30,France v Sweden,France,international,France -1.5 Asian Handicap,back,,,,173.95,won,STRING,From P&L screenshot (World Cup - off-method internationals)
+2026-06-30,France v Sweden,France,international,Over 3.5 Goals,back,,,,0.00,scratch,STRING,Hedged to scratch
+2026-06-30,France v Sweden,France,international,Match Odds,back,,,,72.52,won,STRING,
+2026-06-30,France v Sweden,France,international,Over 2.5 Goals,back,,,,252.33,won,STRING,
+2026-06-30,France v Sweden,France,international,Over 0.5 Goals (1st Half),back,,2.05,500,514.52,won,STRING,Biggest winner of the night
+2026-06-30,Ivory Coast v Norway,Ivory Coast,international,Under 5.5 Goals,lay,,1.02,2500,-50.00,lost,STRING,Lay at 1.02 - huge liability for tiny edge
+2026-06-30,Ivory Coast v Norway,Ivory Coast,international,Over 2.5 Goals,back,,2.18,150,173.46,won,STRING,
+2026-06-30,Ivory Coast v Norway,Ivory Coast,international,Over 1.5 Goals,back,,1.44,300,129.36,won,STRING,
+2026-06-30,Germany v Paraguay,Germany,international,Match Odds,back,,2.44,355.36,-355.36,lost,STRING,Correlated with the handicap below - both lose if Germany lose
+2026-06-30,Germany v Paraguay,Germany,international,Germany -1.5 Asian Handicap,back,,2.26,250,-250.00,lost,STRING,Correlated with the match-odds above - Germany upset sank both

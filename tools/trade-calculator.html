@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S.T.R.I.N.G Trade Calculator</title>
+<style>
+  :root { --bg:#0f1720; --card:#1b2733; --ink:#e8eef4; --muted:#93a4b5;
+          --good:#2ecc71; --bad:#e74c3c; --warn:#f1c40f; --accent:#3aa0ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+         background:var(--bg); color:var(--ink); }
+  header { padding:18px 20px; background:linear-gradient(90deg,#12212e,#0f1720); border-bottom:1px solid #22303d; }
+  h1 { margin:0; font-size:18px; letter-spacing:.5px; }
+  header p { margin:4px 0 0; color:var(--muted); font-size:13px; }
+  .wrap { max-width:1100px; margin:0 auto; padding:18px 20px; display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px; }
+  .card { background:var(--card); border:1px solid #24333f; border-radius:12px; padding:16px 18px; }
+  .card h2 { margin:0 0 12px; font-size:15px; color:var(--accent); }
+  label { display:block; font-size:12px; color:var(--muted); margin:10px 0 3px; }
+  input,select { width:100%; padding:9px 10px; background:#0e1620; color:var(--ink);
+          border:1px solid #2b3b49; border-radius:8px; font-size:15px; }
+  .row { display:flex; gap:10px; } .row > div { flex:1; }
+  .out { margin-top:14px; padding:12px; border-radius:8px; background:#0e1620; border:1px solid #2b3b49; font-size:14px; }
+  .verdict { font-weight:700; font-size:16px; }
+  .good { color:var(--good); } .bad { color:var(--bad); } .warn { color:var(--warn); }
+  .muted { color:var(--muted); font-size:12px; }
+  table { width:100%; border-collapse:collapse; margin-top:6px; font-size:13px; }
+  td { padding:2px 0; } td:last-child { text-align:right; color:var(--muted); }
+  footer { max-width:1100px; margin:0 auto; padding:8px 20px 30px; color:var(--muted); font-size:12px; }
+  .pill { display:inline-block; padding:1px 8px; border-radius:20px; font-size:11px; background:#24333f; }
+</style>
+</head>
+<body>
+<header>
+  <h1>⚽ S.T.R.I.N.G Trade Calculator</h1>
+  <p>The maths from <em>The Six Figure Football Trader</em>. Nothing here places a bet — it does the numbers so you stay disciplined. Runs 100% offline.</p>
+</header>
+
+<div class="wrap">
+
+  <!-- VALUE -->
+  <div class="card">
+    <h2>N — Value (Price vs Strike Rate)</h2>
+    <div class="row">
+      <div><label>Your strike rate %</label><input id="v_sr" type="number" value="70" min="1" max="100"></div>
+      <div><label>Offered price</label><input id="v_price" type="number" value="1.80" step="0.01" min="1.01"></div>
+    </div>
+    <label>Commission % (Betfair ~2)</label><input id="v_comm" type="number" value="0" step="0.5" min="0">
+    <div class="out" id="v_out"></div>
+    <div class="muted">Only trade when the offered price beats the price your strike rate needs.</div>
+  </div>
+
+  <!-- STAKING -->
+  <div class="card">
+    <h2>Golden Equation — Staking</h2>
+    <div class="row">
+      <div><label>Bankroll £</label><input id="s_bank" type="number" value="500" min="1"></div>
+      <div><label>Frontline %</label><input id="s_front" type="number" value="10" min="1" max="100"></div>
+    </div>
+    <div class="out" id="s_out"></div>
+    <div class="muted">Unit = 10% of frontline, and must stay constant for all 10 trades in a cycle.</div>
+  </div>
+
+  <!-- HEDGING -->
+  <div class="card">
+    <h2>Hedging — Back high, lay low</h2>
+    <div class="row">
+      <div><label>Back stake £</label><input id="h_stake" type="number" value="500" min="1"></div>
+      <div><label>Back price</label><input id="h_back" type="number" value="1.43" step="0.01" min="1.01"></div>
+    </div>
+    <div class="row">
+      <div><label>Current lay price</label><input id="h_lay" type="number" value="1.20" step="0.01" min="1.01"></div>
+      <div><label>Mode</label>
+        <select id="h_mode">
+          <option value="green">Green up (equal profit either way)</option>
+          <option value="freebet">Free bet (lay same stake)</option>
+        </select>
+      </div>
+    </div>
+    <label>Commission %</label><input id="h_comm" type="number" value="2" step="0.5" min="0">
+    <div class="out" id="h_out"></div>
+  </div>
+
+  <!-- GEOGRAPHY -->
+  <div class="card">
+    <h2>G — Geography quick check</h2>
+    <label>Country / league</label>
+    <input id="g_country" list="g_list" placeholder="e.g. Sweden, Japan, Brazil">
+    <datalist id="g_list"></datalist>
+    <div class="out" id="g_out"></div>
+    <div class="muted">Men's DOMESTIC leagues only — no cups, friendlies, replays or internationals.</div>
+  </div>
+
+</div>
+
+<footer>
+  Please gamble responsibly. 18+ • BeGambleAware.org • GamStop.co.uk • GamCare • Gordon Moody.
+  This is a personal decision-support tool, not financial advice.
+</footer>
+
+<script>
+// ---- N: value ----
+function impliedProb(p){ return 1/p; }
+function reqPrice(p, c){ return c ? 1 + (1-p)/(p*(1-c)) : 1/p; }
+function fmtP(x){ return (x*100).toFixed(0)+'%'; }
+
+function calcValue(){
+  const sr = Math.max(0.0001, +document.getElementById('v_sr').value/100);
+  const price = +document.getElementById('v_price').value;
+  const c = +document.getElementById('v_comm').value/100;
+  const req = reqPrice(sr, c);
+  const isValue = price > req;
+  const edge = sr - impliedProb(price);
+  const roi = (price-1)*(1-c);
+  document.getElementById('v_out').innerHTML =
+    `<span class="verdict ${isValue?'good':'bad'}">${isValue?'VALUE ✅':'NO VALUE ❌'}</span><br>`+
+    `Offered <b>${price.toFixed(2)}</b> vs required <b>${req.toFixed(2)}</b><br>`+
+    `<span class="muted">You win ${fmtP(sr)}, market implies ${fmtP(impliedProb(price))}. `+
+    `Edge ${(edge*100>=0?'+':'')}${(edge*100).toFixed(1)}pp • ${(roi*100).toFixed(0)}% ROI if it lands.</span>`;
+}
+
+// ---- Staking ----
+function calcStake(){
+  const bank = +document.getElementById('s_bank').value;
+  const frontPct = +document.getElementById('s_front').value/100;
+  const front = bank*frontPct, unit = front/10;
+  let warn = '';
+  if(frontPct > 0.30) warn = `<div class="bad">⚠️ ${(frontPct*100).toFixed(0)}% is above the book's 30% hard ceiling — this is how banks get blown.</div>`;
+  else if(frontPct > 0.25) warn = `<div class="warn">⚠️ Above the recommended 25%. Only with a proven strike rate.</div>`;
+  document.getElementById('s_out').innerHTML =
+    `<table>`+
+    `<tr><td>Bankroll</td><td>£${bank.toFixed(2)}</td></tr>`+
+    `<tr><td>Frontline (${(frontPct*100).toFixed(0)}%)</td><td>£${front.toFixed(2)}</td></tr>`+
+    `<tr><td>Cycle</td><td>10 trades</td></tr>`+
+    `<tr><td><b>Unit (stake per trade)</b></td><td><b>£${unit.toFixed(2)}</b></td></tr>`+
+    `</table>${warn}`;
+}
+
+// ---- Hedging ----
+function calcHedge(){
+  const S = +document.getElementById('h_stake').value;
+  const B = +document.getElementById('h_back').value;
+  const L = +document.getElementById('h_lay').value;
+  const mode = document.getElementById('h_mode').value;
+  const c = +document.getElementById('h_comm').value/100;
+  const out = document.getElementById('h_out');
+  if(L > B){ out.innerHTML = `<span class="bad">Lay price should be LOWER than the back price (back high, lay low). If it drifted up, you're trading out of a loss, not greening up.</span>`; return; }
+  const layStake = mode==='green' ? S*B/L : S;
+  const liability = layStake*(L-1);
+  const backWin = S*(B-1)*(1-c);
+  const pEvent = backWin - liability;
+  const layWin = layStake*(1-c);
+  const pNo = layWin - S;
+  out.innerHTML = mode==='green'
+    ? `<span class="verdict good">GREEN UP</span><br>Lay <b>£${layStake.toFixed(2)}</b> @ ${L.toFixed(2)}<br>`+
+      `<span class="muted">Locked <b>£${pEvent.toFixed(2)}</b> either way • liability £${liability.toFixed(2)}</span>`
+    : `<span class="verdict">FREE BET</span><br>Lay <b>£${layStake.toFixed(2)}</b> @ ${L.toFixed(2)}<br>`+
+      `<span class="muted">If it hits: <b class="good">£${pEvent.toFixed(2)}</b> • if not: £${pNo.toFixed(2)} • liability £${liability.toFixed(2)}</span>`;
+}
+
+// ---- Geography (subset of the book's list) ----
+const GEO = {
+  england:['core','goals','Trade freely.'], italy:['core','goals','Top European league.'],
+  spain:['core','goals','Trade freely (big-2 dominance).'], france:['core','goals','Top European league.'],
+  portugal:['core','goals','Top European league.'], germany:['core','goals','UCL nation, solid.'],
+  netherlands:['core','goals','UCL nation, solid.'],
+  austria:['middle','goals','Goal-fest.'], croatia:['middle','goals','Goal-fest.'],
+  belgium:['middle','goals','Goal-fest.'], finland:['middle','goals','Goal-fest, big class gap.'],
+  turkey:['middle','goals','Goal-fest; TIGER fires here.'], norway:['middle','goals','Goal-fest.'],
+  switzerland:['middle','goals','Goal-fest; huge class gap.'], denmark:['middle','goals','Goal-fest.'],
+  greece:['middle','goals','Goal-fest.'], sweden:['middle','goals','Goal-fest.'], iceland:['middle','goals','Goal-fest.'],
+  japan:['core','UNDERS','Conservative — back UNDERS when form shows 1s and 0s.'],
+  'south korea':['middle','goals','Good for goals; TIGER fires often.'],
+  australia:['middle','goals','Most profitable per book; first-half goals (use Bet365).'],
+  usa:['strict','goals','MLS only; avoid lower US.'], mexico:['middle','goals','West Americas pick.'],
+  peru:['middle','goals','A book favourite.'], venezuela:['strict','goals','West Americas, strict.'],
+  ecuador:['strict','goals','West Americas, strict.'], cuba:['strict','goals','West Americas, strict.'],
+  egypt:['strict','goals','Big games only; strong for TIGER.'], israel:['strict','goals','Big games only.'],
+  morocco:['strict','goals','Big games only.'], tunisia:['strict','goals','Big games only.'],
+  algeria:['strict','goals','Big games only.'], libya:['strict','goals','Big games only.'], malta:['strict','goals','Big games only.'],
+  russia:['avoid','-','Don\'t touch with a barge pole.'], brazil:['avoid','-','Unpredictable; book loses here.'],
+  argentina:['avoid','-','Not "the West" — steer clear.'], uruguay:['avoid','-','Not "the West" — steer clear.'],
+  paraguay:['avoid','-','Not "the West" — steer clear.'], china:['avoid','-','A minefield.'],
+  belarus:['avoid','-','Minor structure.'], estonia:['avoid','-','Minor structure.'],
+  romania:['avoid','-','Tread very carefully.'], 'south africa':['avoid','-','Stay away without local knowledge.'],
+};
+const ICON = {core:['✅','good'], middle:['✅','good'], strict:['⚠️','warn'], avoid:['❌','bad']};
+window.addEventListener('DOMContentLoaded',()=>{
+  const dl=document.getElementById('g_list');
+  Object.keys(GEO).sort().forEach(k=>{ const o=document.createElement('option'); o.value=k.replace(/\b\w/g,c=>c.toUpperCase()); dl.appendChild(o); });
+});
+function calcGeo(){
+  const key=(document.getElementById('g_country').value||'').trim().toLowerCase();
+  const out=document.getElementById('g_out');
+  if(!key){ out.innerHTML='<span class="muted">Type a country…</span>'; return; }
+  const g=GEO[key];
+  if(!g){ out.innerHTML=`<span class="warn">❓ Not in the book's list. The less you know a league, the stronger the criteria must be. Default: leave it.</span>`; return; }
+  const [tier,bias,note]=g, [ic,cls]=ICON[tier];
+  const biasTxt = bias==='UNDERS'?'look for UNDERS':(bias==='goals'?'look for OVERS/goals':'—');
+  out.innerHTML=`<span class="${cls}">${ic} <b>${key.replace(/\b\w/g,c=>c.toUpperCase())}</b> <span class="pill">${tier}</span></span><br>`+
+    `<span class="muted">${biasTxt} — ${note}</span>`;
+}
+
+// wire up
+['v_sr','v_price','v_comm'].forEach(id=>document.getElementById(id).addEventListener('input',calcValue));
+['s_bank','s_front'].forEach(id=>document.getElementById(id).addEventListener('input',calcStake));
+['h_stake','h_back','h_lay','h_mode','h_comm'].forEach(id=>document.getElementById(id).addEventListener('input',calcHedge));
+document.getElementById('g_country').addEventListener('input',calcGeo);
+calcValue(); calcStake(); calcHedge(); calcGeo();
+</script>
+</body>
+</html>
