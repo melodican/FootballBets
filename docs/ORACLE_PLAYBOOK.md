@@ -62,6 +62,7 @@ All commands run from the repo root. Add `--json` for machine-readable output.
 | Stake sizing | `python -m stringtheory stake --bankroll 500 --frontline 10` |
 | Vet an entry (stake+value+exit+correlation) | `python -m stringtheory position --bankroll 1000 --match "..." --selection "Germany -1.5" --market "Asian Handicap" --price 2.26 --strike 60 --open "...|Germany|Match Odds"` |
 | Green up / free bet | `python -m stringtheory hedge --stake 500 --back 1.43 --lay 1.20 --mode green` |
+| Red up / stop-loss | `python -m stringtheory redup --stake 150 --back 2.0 --lay 5.0` |
 | Full in-play read | `python -m stringtheory evaluate --country Sweden --minute 55 ... --json` |
 | League stance | `python -m stringtheory geo Japan` |
 | Weekly performance | `python -m stringtheory analyse --path data/betfair_export.csv` |
@@ -93,6 +94,9 @@ python -m pytest -q                # confirm green
    (correlation/staking) means make Glen consciously confirm.
 4. After a goal moves the price: run `hedge` and tell him the green-up/free-bet
    lay instantly.
+5. If the game goes **against** a let-ride bet and hits its pre-set exit: run
+   `redup` and give the stop-loss lay to cap it. Don't let it ride to zero —
+   this is the −£320/day leak.
 
 ### Post-match / daily close
 - Record every position (match, market, entry, exit, P/L, whether traded or

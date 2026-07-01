@@ -44,3 +44,16 @@ def test_books_lion_over35_example():
 def test_lay_must_be_lower_than_back():
     with pytest.raises(ValueError):
         hedging.hedge(100, 1.5, 2.0, mode="green")   # price drifted up, not a green-up
+
+
+def test_cash_out_caps_a_loser():
+    # Belgium MO backed £150 @ 2.0; drifted to 5.0 against you -> red up.
+    r = hedging.cash_out(back_stake=150, back_price=2.0, current_lay_price=5.0, commission=0.0)
+    assert r.profit_if_event == r.profit_if_no_event      # equalised both ways
+    assert r.profit_if_event < 0                          # it's a capped loss
+    assert r.profit_if_event > -150                       # but smaller than the -£150 full loss
+
+
+def test_cash_out_greens_a_winner():
+    r = hedging.cash_out(back_stake=100, back_price=2.0, current_lay_price=1.5, commission=0.0)
+    assert r.profit_if_event > 0                          # price shortened -> locked profit

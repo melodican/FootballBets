@@ -58,6 +58,41 @@ def _lay_liability(lay_stake: float, lay_price: float) -> float:
     return lay_stake * (lay_price - 1.0)
 
 
+def cash_out(
+    back_stake: float,
+    back_price: float,
+    current_lay_price: float,
+    commission: float = DEFAULT_COMMISSION,
+) -> HedgeResult:
+    """Equalise a position at the current price — a green up if the price
+    shortened, or a **red up / stop-loss** if it drifted against you.
+
+    Unlike ``hedge``, this permits ``current_lay_price > back_price`` so you can
+    cap a loser. Laying ``back_stake * back_price / current_lay_price`` locks the
+    same P/L whichever way the game goes. This is the exit that turns an
+    un-capped −£150 let-ride into a small, controlled loss.
+    """
+    if back_price <= 1 or current_lay_price <= 1:
+        raise ValueError("decimal prices must be > 1")
+    lay_stake = back_stake * back_price / current_lay_price
+    liability = _lay_liability(lay_stake, current_lay_price)
+    back_win = back_stake * (back_price - 1.0) * (1.0 - commission)
+    profit_if_event = back_win - liability
+    lay_win = lay_stake * (1.0 - commission)
+    profit_if_no_event = lay_win - back_stake
+    return HedgeResult(
+        mode="cash_out",
+        back_stake=round(back_stake, 2),
+        back_price=back_price,
+        lay_price=current_lay_price,
+        lay_stake=round(lay_stake, 2),
+        liability=round(liability, 2),
+        profit_if_event=round(profit_if_event, 2),
+        profit_if_no_event=round(profit_if_no_event, 2),
+        guaranteed=True,
+    )
+
+
 def hedge(
     back_stake: float,
     back_price: float,

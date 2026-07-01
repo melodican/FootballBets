@@ -63,6 +63,15 @@ def cmd_hedge(args) -> int:
     return 0
 
 
+def cmd_redup(args) -> int:
+    r = hedging.cash_out(args.stake, args.back, args.lay, commission=args.commission)
+    locked = r.profit_if_event
+    verb = "GREEN UP (locked profit)" if locked >= 0 else "RED UP (capped loss)"
+    print(f"{verb}: lay £{r.lay_stake:.2f} @ {r.lay_price:.2f} → "
+          f"£{locked:+.2f} either way (liability £{r.liability:.2f}).")
+    return 0
+
+
 def cmd_geo(args) -> int:
     print(geography.assess_country(args.country).summary)
     return 0
@@ -215,6 +224,13 @@ def build_parser() -> argparse.ArgumentParser:
     h.add_argument("--mode", choices=["green", "freebet"], default="green")
     h.add_argument("--commission", type=float, default=hedging.DEFAULT_COMMISSION)
     h.set_defaults(func=cmd_hedge)
+
+    ru = sub.add_parser("redup", help="Red-up / stop-loss (or green-up) to equalise at the current price")
+    ru.add_argument("--stake", type=float, required=True, help="Original back stake")
+    ru.add_argument("--back", type=float, required=True, help="Back price you got on")
+    ru.add_argument("--lay", type=float, required=True, help="Current lay price (higher = losing)")
+    ru.add_argument("--commission", type=float, default=hedging.DEFAULT_COMMISSION)
+    ru.set_defaults(func=cmd_redup)
 
     g = sub.add_parser("geo", help="Look up the book's stance on a country")
     g.add_argument("country")
