@@ -29,7 +29,7 @@ import argparse
 import sys
 from typing import Optional, Tuple
 
-from . import betfair, evaluate, geography, hedging, journal, numbers, staking
+from . import betfair, evaluate, geography, hedging, journal, numbers, shortlist, staking
 
 
 def _parse_pair(text: Optional[str]) -> Tuple[Optional[float], Optional[float]]:
@@ -122,6 +122,23 @@ def cmd_analyse(args) -> int:
     return 0
 
 
+def cmd_shortlist(args) -> int:
+    if args.date:
+        from . import apifootball
+        try:
+            fixtures = apifootball.fixtures_for_date(args.date)
+        except Exception as exc:  # network blocked here; runs on your machine
+            print(f"Live fetch failed ({exc}). Falling back to --file if given.")
+            if not args.file:
+                return 1
+            fixtures = shortlist.load_fixtures_json(args.file)
+    else:
+        fixtures = shortlist.load_fixtures_json(args.file)
+    print(shortlist.format_shortlist(fixtures, top=args.top, min_score=args.min_score,
+                                     show_reasons=not args.no_reasons))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="stringtheory", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -190,6 +207,14 @@ def build_parser() -> argparse.ArgumentParser:
     an.add_argument("--path", required=True, help="Path to the ExchangeBets_Settled CSV")
     an.add_argument("--commission", type=float, default=betfair.DEFAULT_COMMISSION)
     an.set_defaults(func=cmd_analyse)
+
+    sl = sub.add_parser("shortlist", help="Daily 'Watch These Games' Top-vs-Whipping-Boys shortlist")
+    sl.add_argument("--date", help="YYYY-MM-DD for a live API-Football fetch (needs API_FOOTBALL_KEY)")
+    sl.add_argument("--file", default="data/fixtures_sample.json", help="Cached/normalised fixtures JSON")
+    sl.add_argument("--top", type=int, default=15)
+    sl.add_argument("--min-score", type=float, default=0.0, dest="min_score")
+    sl.add_argument("--no-reasons", action="store_true")
+    sl.set_defaults(func=cmd_shortlist)
 
     return p
 
