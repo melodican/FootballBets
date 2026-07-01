@@ -101,6 +101,19 @@ rate table, the £500/10%/£5 staking cycle, the LION hedge, etc.).
 - **Web dashboard** — the calculator plus your live journal and running strike
   rate in one screen.
 
+## Driving it with an agent (Oracle)
+
+The commands Oracle calls most (`shortlist`, `evaluate`) take a `--json` flag for
+machine-readable output, so an agent can parse results instead of scraping text.
+Oracle runs on Glen's Mac — which *can* reach API-Football and Betfair — and uses
+this package as its deterministic toolbox. Its role, guardrails and daily
+routine are specified in [`docs/ORACLE_PLAYBOOK.md`](docs/ORACLE_PLAYBOOK.md).
+
+```bash
+python -m stringtheory shortlist --date 2026-08-08 --json   # agent-friendly
+python -m stringtheory evaluate --country Sweden --minute 55 ... --json
+```
+
 ## Responsible gambling
 
 18+. Betting carries real financial risk and can be harmful. This project is a

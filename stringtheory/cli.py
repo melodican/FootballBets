@@ -26,6 +26,8 @@ Examples
 from __future__ import annotations
 
 import argparse
+import dataclasses
+import json
 import sys
 from typing import Optional, Tuple
 
@@ -66,6 +68,11 @@ def cmd_geo(args) -> int:
     return 0
 
 
+def _emit_json(payload) -> None:
+    print(json.dumps(payload, default=lambda o: dataclasses.asdict(o)
+                     if dataclasses.is_dataclass(o) else str(o), indent=2))
+
+
 def cmd_evaluate(args) -> int:
     home_shots, away_shots = _parse_pair(args.shots)
     da_home, da_away = _parse_pair(args.da)
@@ -89,7 +96,17 @@ def cmd_evaluate(args) -> int:
         offered_price=args.price,
         commission=args.commission,
     )
-    print(evaluate.evaluate(ctx).describe())
+    result = evaluate.evaluate(ctx)
+    if getattr(args, "json", False):
+        _emit_json({
+            "verdict": result.verdict,
+            "checks": [{"letter": c.letter, "status": c.status, "message": c.message}
+                       for c in result.checks],
+            "value": dataclasses.asdict(result.value) if result.value else None,
+            "reasons": result.reasons,
+        })
+    else:
+        print(result.describe())
     return 0
 
 
@@ -134,8 +151,19 @@ def cmd_shortlist(args) -> int:
             fixtures = shortlist.load_fixtures_json(args.file)
     else:
         fixtures = shortlist.load_fixtures_json(args.file)
-    print(shortlist.format_shortlist(fixtures, top=args.top, min_score=args.min_score,
-                                     show_reasons=not args.no_reasons))
+    if getattr(args, "json", False):
+        items = shortlist.build_shortlist(fixtures, min_score=args.min_score)[:args.top]
+        _emit_json([{
+            "match": it.match, "country": it.fixture.country,
+            "league": it.fixture.league_name, "kickoff": it.fixture.kickoff,
+            "score": it.score, "angle": it.angle, "favourite": it.favourite,
+            "reasons": it.reasons,
+        } for it in items])
+    elif getattr(args, "telegram", False):
+        print(shortlist.format_telegram(fixtures, top=args.top, min_score=args.min_score))
+    else:
+        print(shortlist.format_shortlist(fixtures, top=args.top, min_score=args.min_score,
+                                         show_reasons=not args.no_reasons))
     return 0
 
 
@@ -182,6 +210,7 @@ def build_parser() -> argparse.ArgumentParser:
     e.add_argument("--strike", type=float, help="your strike-rate estimate")
     e.add_argument("--price", type=float, help="offered decimal price")
     e.add_argument("--commission", type=float, default=numbers.DEFAULT_COMMISSION)
+    e.add_argument("--json", action="store_true", help="Machine-readable output for agents")
     e.set_defaults(func=cmd_evaluate)
 
     lg = sub.add_parser("log", help="Log a settled trade")
@@ -214,6 +243,8 @@ def build_parser() -> argparse.ArgumentParser:
     sl.add_argument("--top", type=int, default=15)
     sl.add_argument("--min-score", type=float, default=0.0, dest="min_score")
     sl.add_argument("--no-reasons", action="store_true")
+    sl.add_argument("--json", action="store_true", help="Machine-readable output for agents")
+    sl.add_argument("--telegram", action="store_true", help="Compact message for Telegram push")
     sl.set_defaults(func=cmd_shortlist)
 
     return p

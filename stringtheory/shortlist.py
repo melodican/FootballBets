@@ -222,3 +222,21 @@ def format_shortlist(fixtures: List[Fixture], top: int = 15, min_score: float = 
         lines.append(f"Skipped {len(skipped)} off-method game(s): "
                      + ", ".join(sorted({f'{it.match} ({it.skip_reason})' for it in skipped}))[:400])
     return "\n".join(lines)
+
+
+def format_telegram(fixtures: List[Fixture], top: int = 8, min_score: float = 0.0,
+                    header: str = "Watch These Games") -> str:
+    """A compact message for Oracle to push to Telegram (short, scannable)."""
+    live = build_shortlist(fixtures, min_score=min_score)
+    n_skip = sum(1 for fx in fixtures if score_fixture(fx).off_method)
+    if not live:
+        return (f"⚽ *{header}*\nNo on-method games today"
+                + (f" ({n_skip} off-method skipped)." if n_skip else "."))
+    out = [f"⚽ *{header}*"]
+    for i, it in enumerate(live[:top], 1):
+        fire = "🔥" if it.score >= 80 else ("✅" if it.score >= 60 else "•")
+        bias = "UNDERS" if "UNDERS" in it.angle else "GOALS"
+        out.append(f"{i}. {fire}{it.score:.0f} {it.match} ({it.fixture.country}) — {bias}")
+    if n_skip:
+        out.append(f"_{n_skip} off-method skipped._")
+    return "\n".join(out)
